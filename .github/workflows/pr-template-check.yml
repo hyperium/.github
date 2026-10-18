@@ -15,7 +15,7 @@ jobs:
         with:
           script: |
             const body = context.payload.pull_request.body || "";
-            const canary = "The description, docs, and comments (words meant for humans) are written by a human, not by an LLM.";
+            const canary = "- [x] The description, docs, and comments (words meant for humans) are written by a human, not by an LLM.";
 
             if (!body.includes(canary)) {
               core.setFailed(
