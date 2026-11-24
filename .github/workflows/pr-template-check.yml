@@ -2,6 +2,11 @@ name: PR Template Verification
 
 on:
   workflow_call:
+    inputs:
+      comment-on-open:
+        description: Post a comment if the template check fails when the PR opens
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -11,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ensure PR template was preserved
+        id: check-template
         uses: actions/github-script@v7
         with:
           script: |
@@ -22,3 +28,28 @@ jobs:
                 "PR description is missing the template's human-authorship statement. Please restore it."
               );
             }
+
+      - name: Comment on missing PR template statement
+        if: >-
+          ${{
+            failure() &&
+            steps.check-template.outcome == 'failure' &&
+            inputs.comment-on-open &&
+            github.event.action == 'opened' &&
+            github.run_attempt == '1'
+          }}
+        uses: actions/github-script@v7
+        env:
+          COMMENT_BODY: |-
+            Hey there! It looks like this description was written by an LLM. Is that right?
+
+            We ask that [communication be written by humans](https://hyper.rs/contrib/ai-policy/).
+
+            If I'm wrong, sorry about that, I'm a bot. :robot:
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              body: process.env.COMMENT_BODY,
+            });
